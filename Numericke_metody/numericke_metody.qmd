@@ -18,16 +18,13 @@ gaussova_metoda <- function(A, b) {
   n <- nrow(A); Ab <- cbind(A, b)  # Rozšířená matice
   # Dopředná eliminace
   for (k in 1:(n-1)) {
-    # Výběr pivota (částečná pivotace)
-    max_idx <- which.max(abs(Ab[k:n, k])) + k - 1
-    if (max_idx != k) {
-      # Prohození řádků
+    max_idx <- which.max(abs(Ab[k:n, k])) + k - 1 # Výběr pivota (částečná pivotace)
+    if (max_idx != k) { # Prohození řádků
       temp <- Ab[k, ]
       Ab[k, ] <- Ab[max_idx, ]
       Ab[max_idx, ] <- temp
     }
-    # Eliminace
-    for (i in (k+1):n) {
+    for (i in (k+1):n) { # Eliminace
       faktor <- Ab[i, k] / Ab[k, k]
       Ab[i, ] <- Ab[i, ] - faktor * Ab[k, ]
     }
@@ -35,7 +32,6 @@ gaussova_metoda <- function(A, b) {
   # Zpětná substituce
   x <- numeric(n)
   x[n] <- Ab[n, n+1] / Ab[n, n]
-  
   for (i in (n-1):1) {
     x[i] <- (Ab[i, n+1] - sum(Ab[i, (i+1):n] * x[(i+1):n])) / Ab[i, i]
   }
@@ -51,14 +47,10 @@ gaussova_metoda <- function(A, b) {
 # Rozloží matici A na L (dolní trojúhelníková) a U (horní trojúhelníková)
 # Pak řeší Ly = b a Ux = y
 lu_dekompozice <- function(A) {
-  n <- nrow(A)
-  L <- diag(n)
-  U <- A
+  n <- nrow(A); L <- diag(n); U <- A
   for (k in 1:(n-1)) {
     for (i in (k+1):n) {
-      if (U[k, k] == 0) {
-        stop("Pivot je nula - nelze provést LU dekompozici")
-      }
+      if (U[k, k] == 0) stop("Pivot je nula - nelze provést LU dekompozici")
       faktor <- U[i, k] / U[k, k]
       L[i, k] <- faktor
       U[i, k:n] <- U[i, k:n] - faktor * U[k, k:n]
@@ -69,9 +61,7 @@ lu_dekompozice <- function(A) {
 # Řešení soustavy pomocí LU dekompozice
 reseni_lu <- function(A, b) {
   n <- length(b)
-  LU <- lu_dekompozice(A)
-  L <- LU$L
-  U <- LU$U
+  LU <- lu_dekompozice(A); L <- LU$L; U <- LU$U
   # Dopředná substituce: Ly = b
   y <- numeric(n)
   for (i in 1:n) {
@@ -107,7 +97,6 @@ jacobiova_metoda <- function(A, b, x0 = NULL, tol = 1e-6, max_iter = 1000) {
     x <- x0
   }
   x_new <- numeric(n)
-  
   for (iter in 1:max_iter) {
     for (i in 1:n) {
       suma <- sum(A[i, ] * x) - A[i, i] * x[i]
@@ -120,7 +109,6 @@ jacobiova_metoda <- function(A, b, x0 = NULL, tol = 1e-6, max_iter = 1000) {
     }
     x <- x_new
   }
-  
   warning("Jacobiova metoda nedosáhla konvergence")
   return(x_new)
 }
@@ -1533,43 +1521,26 @@ MidPointRule <- function(f, a, b, n) {
 }
 # Pro danou hodnotu α spočítá integrál přes x
 InnerIntegral <- function(alpha) {
-  # Funkce: exponenciálně tlumený sinus
-  f <- function(x) exp(-alpha * x) * sin(x)
-  # Integrujeme od 0 do 2π (jedna perioda sinusoidy)
-  # Používáme 1000 bodů pro dobrou přesnost
-  return(MidPointRule(f, 0, 2 * pi, 1000))
+  f <- \(x) exp(-alpha * x) * sin(x) # Funkce: exponenciálně tlumený sinus
+  return(MidPointRule(f, 0, 2 * pi, 1000)) # Integrujeme od 0 do 2π (jedna perioda sinusoidy), Používáme 1000 bodů pro dobrou přesnost
 }
 # Pro danou hodnotu p spočítá integrál přes α
 OuterIntegral <- function(p) {
-  # Pro každé α spočítáme InnerIntegral(α)
-  g <- function(alpha) InnerIntegral(alpha)
-  # Integrujeme výsledky od 0 do p
-  return(MidPointRule(g, 0, p, 1000))
+  g <- \(alpha) InnerIntegral(alpha) # Pro každé α spočítáme InnerIntegral(α)
+  return(MidPointRule(g, 0, p, 1000)) # Integrujeme výsledky od 0 do p
 }
 FindP <- function(target, p_min, p_max, tol = 1e-7) {
-  J_min <- OuterIntegral(p_min)
-  J_max <- OuterIntegral(p_max)
-  g_min <- J_min - target
-  g_max <- J_max - target
-  if (J_min > target && J_max > target) {
-    print("Target je příliš malý - neexistuje řešení")
-  }
-  if (J_min < target && J_max < target) {
-    print("Target je příliš velký - neexistuje řešení")
-  }
-  if (g_min * g_max > 0) {
-    print("Stejné znaménko - ŽÁDNÉ řešení")
-  }
+  J_min <- OuterIntegral(p_min); J_max <- OuterIntegral(p_max)
+  g_min <- J_min - target; g_max <- J_max - target
+  if (J_min > target && J_max > target) print("Target je příliš malý - neexistuje řešení")
+  if (J_min < target && J_max < target) print("Target je příliš velký - neexistuje řešení")
+  if (g_min * g_max > 0) print("Stejné znaménko - ŽÁDNÉ řešení")
   for (i in 1:1000) {
     pmid <- (p_min + p_max) / 2
     integral_c <- OuterIntegral(pmid)
-    if (abs(integral_c - target_value) < tol) { return(pmid) }
+    if (abs(integral_c - target_value) < tol) return(pmid) 
     integral_a <- OuterIntegral(p_min)
-    if ((integral_a - target_value) * (integral_c - target_value) < 0) {
-      p_max <- pmid
-    } else {
-      p_min <- pmid
-    }
+    if ((integral_a - target_value) * (integral_c - target_value) < 0) p_max <- pmid else p_min <- pmid
   }
   # Výsledek: střed posledního intervalu
   result <- (p_min + p_max) / 2
@@ -1581,12 +1552,10 @@ target_value <- 1.31848
 # Otestujeme různé hodnoty p
 test_p_values <- c(0.1, 0.5, 1, 2, 3, 5, 10, 20, 50)
 cat("p        J(p)\n")
-cat("-------------------\n")
 J_test_values <- numeric(length(test_p_values))
 for (i in seq_along(test_p_values)) {
   p <- test_p_values[i]
   J <- OuterIntegral(p)
-  J_test_values[i] <- J
   cat(sprintf("%-8.1f %.6f\n", p, J))
 }
 p_solution <- FindP(target_value, p_min = 0, p_max = 5, tol = 1e-7)
@@ -1597,16 +1566,12 @@ cat(sprintf("Nalezené p: %.7f\n", p_solution))
 cat(sprintf("J(p): %.7f\n", J_final))
 cat(sprintf("Cílová hodnota: %.7f\n", target_value))
 cat(sprintf("Absolutní chyba: %.2e\n", error))
-if (error < 1e-4) {
-  cat("Výsledek je správný! ✓\n")
-} else {
-  cat("Chyba je příliš velká\n")
-}
+if (error < 1e-4) cat("Výsledek je správný! ✓\n") else cat("Chyba je příliš velká\n")
+
 # Vytvoříme body pro graf
-p_values <- seq(0, 5, length.out = 50)
+p_values <- seq(-5, 5, length.out = 50)
 J_values <- sapply(p_values, OuterIntegral)
-# Graf
-plot(p_values, J_values, type = "l", lwd = 2, col = "blue", xlab = "p", ylab = "J(p)", main = "Závislost J(p) na parametru p")
+plot(p_values, J_values, type = "l", lwd = 2, col = "blue", xlab = "p", ylab = "J(p)", main = "Závislost J(p) na parametru p") # Graf
 grid()
 # Označíme cílovou hodnotu
 abline(h = target_value, col = "red", lwd = 2, lty = 2)
@@ -1626,11 +1591,9 @@ Lagrange <- function(t, x, y){ # počítáme bod t, kde chceme spočítat interp
   for (i in 1:n) {
     nasobic <- 1 # jsou použity jako váhy pro příslušné základní polynomy
     for(j in 1:n){
-      if(j!=i){ # pro j!= i
-        nasobic <- nasobic*(t-x[j])/(x[i]-x[j]) # Lagrangeův základní polynom Li(t), která se skládá z násobků (t-xj)/(xi-xj), kde j se nerovná i. 
-      }
+      if(j!=i) nasobic <- nasobic*(t-x[j])/(x[i]-x[j]) # Lagrangeův základní polynom Li(t), která se skládá z násobků (t-xj)/(xi-xj), kde j se nerovná i.
     }
-    suma <- suma+y[i]*nasobic # suma hodnot všech základních polynomů násobených odpovídající hodnotou y[i]
+    suma <- suma + y[i] * nasobic # suma hodnot všech základních polynomů násobených odpovídající hodnotou y[i]
   }
   return(suma) # hodnota interpolovaného polynomu v bodech t stupně n-1
 }
@@ -1639,10 +1602,9 @@ LSA <- function(x, y, n){ # x a y je vektor hodnot, n je stupeň polynomu
   A <- matrix(0, n, n); b <- numeric(n) # vytvoření matice A a vektoru b
   for(i in 1:n){
     for(j in 1:n){
-      # A je matice součtů mocnin x
-      A[i,j] <- sum(x^(i+j-2)) 
-    } # b je vektor součtů součinů yx^i-1
-    b[i] <- sum(y*x^(i-1)) # součty součinů y*x^(i-1)
+      A[i,j] <- sum(x^(i+j-2)) # A je matice součtů mocnin x
+    }
+    b[i] <- sum(y*x^(i-1)) # b je vektor součtů součinů yx^i-1
   } # vyřeší se lin. soustava rovnic LS: A*c=b což
   return(solve(A, b)) # vrátí vektor koeficientů c (aprox. polynomu)
 }
@@ -1650,13 +1612,11 @@ LSA <- function(x, y, n){ # x a y je vektor hodnot, n je stupeň polynomu
 # pol. je obecně vyjádř. ve tvaru: P(x)=anx^n+an-1x^n-1+…+a1x+a0
 Horner <- function(x, coef){ # vyhodnocení polynomu pomocí tvaru funkce: P(x)=(…((anx+an-1)x+an-2)*x+…+a1)x+a0
   n <- length(coef); res <- coef[n] # Výpočet začíná od nejvyššího koef.
-  for (i in (n-1):1) { # pro každý koef. od an-1 po a0 akt. res=res*x+ai
-    res <- res*x+coef[i] # se postupně přidává k dalším koeficientům
-  }
+  for (i in (n-1):1) res <- res*x+coef[i] # pro každý koef. od an-1 po a0 akt. res=res*x+ai se postupně přidává k dalším koeficientům
   return(res) # hodnota polynomů pro dané x
 }
 #definování funkce integrálu
-f <- function(x) { return( 1/(sqrt(2+pi)) * exp(-x*x/2)) }
+f <- \(x) return(1/(sqrt(2+pi)) * exp(-x*x/2)) 
 #simpsnovo pravidlo pro výpočet integrálu
 simpson_integration <- function(f, a, b, n = 1000) {
   if (n %% 2 == 1) n <- n + 1  # n musí být sudé
@@ -1675,13 +1635,9 @@ find_b_for_integral <- function(f, target_value = 0.05) {
   for (i in 1:max_iter) {
     c <- (a + b) / 2
     integral_c <- simpson_integration(f, 0, c)
-    if (abs(integral_c - target_value) < tolerance) { return(c) }
+    if (abs(integral_c - target_value) < tolerance) return(c) 
     integral_a <- simpson_integration(f, 0, a)
-    if ((integral_a - target_value) * (integral_c - target_value) < 0) {
-      b <- c
-    } else {
-      a <- c
-    }
+    if ((integral_a - target_value) * (integral_c - target_value) < 0) b <- c else a <- c
   }
   return(c)
 }
@@ -1693,21 +1649,16 @@ cat("Ověření výsledku - integrál od 0 do b:", round(verification, 6), "\n")
 x_points <- seq(0.05, 0.25, by = 0.05)  # 0.05, 0.10, 0.15, 0.20, 0.25
 y_points <- sapply(x_points, f)
 # Vytvoření tabulky hodnot
-data_table <- data.frame(
-  x = x_points,
-  y = y_points,
-  integral_0_to_x = sapply(x_points, function(xi) find_b_for_integral(f, xi))
-)
+data_table <- data.frame(x = x_points, y = y_points, integral_0_to_x = sapply(x_points, \(xi) find_b_for_integral(f, xi)))
 cat("\nTabulka hodnot pro interpolaci:\n")
 print(data_table)
 # 3. Lineární interpolace
 x_fine <- seq(0.05, 0.25, by = 0.001)
-lagrange_values <- sapply(x_fine, function(t) Lagrange(t, x_points, y_points))
+lagrange_values <- sapply(x_fine, \(t) Lagrange(t, x_points, y_points))
 cat("Ověření interpolace v původních bodech:\n")
 for(i in 1:length(x_points)) {
   calculated <- Lagrange(x_points[i], x_points, y_points)
-  cat(sprintf("x=%.2f: očekáváno=%.6f, vypočteno=%.6f, chyba=%.2e\n", 
-              x_points[i], y_points[i], calculated, abs(y_points[i] - calculated)))
+  cat(sprintf("x=%.2f: očekáváno=%.6f, vypočteno=%.6f, chyba=%.2e\n", x_points[i], y_points[i], calculated, abs(y_points[i] - calculated)))
 }
 # 4. Polynomiální aproximace (3. stupně)
 x_fine <- seq(0.05, 0.25, by = 0.001)
@@ -1718,31 +1669,27 @@ poly_4_values <- sapply(x_fine, function(x) Horner(x, degree_4))
 poly_fit <- lm(y_points ~ poly(x_points, 3, raw = TRUE))
 poly_pred <- predict(poly_fit, data.frame(x_points = x_fine))
 plot2 <- ggplot() +
-  # Původní funkce
-  geom_line(aes(x = x_fine, y = sapply(x_fine, f)), color = "black", size = 1, alpha = 0.7) +
-  # Interpolace a aproximace
-  geom_line(aes(x = x_fine, y = lagrange_values), color = "red", size = 1) +
+  geom_line(aes(x = x_fine, y = sapply(x_fine, f)), color = "black", size = 1, alpha = 0.7) + # Původní funkce
+  geom_line(aes(x = x_fine, y = lagrange_values), color = "red", size = 1) + # Interpolace a aproximace
   geom_line(aes(x = x_fine, y = poly_4_values), color = "blue", size = 2) + 
-  # Body pro interpolaci
-  geom_point(aes(x = x_points, y = y_points), color = "purple", size = 3) +
+  geom_point(aes(x = x_points, y = y_points), color = "purple", size = 3) + # Body pro interpolaci
   labs(title = "Porovnání interpolačních a aproximačních metod", x = "x", y = "f(x)") +
   theme_minimal()
 print(plot2)
 plot(x_fine, lagrange_values, type = "l", lwd = 2, col = "blue", xlab = "b", ylab = "f(b)", main = "Lagrange")
 lines(x_fine, poly_4_values, type = "l", lwd = 2, col = "green", xlab = "b", ylab = "f(b)", main = "LSA")
-
 ```
 
 #### Hledání extrémů ve funkci (průběh funkce)
 
 ```{r}
-f <- function(x) { return(cos(5*acos(x)))} #nadefinujeme si funkci
+f <- function(x) return(cos(5*acos(x))) #nadefinujeme si funkci
 #uděláme první a druhou derivaci funkce
-fd <- function(f,x, h=1e-5){return((f(x+h)-f(x-h))/(2*h))} #první derivace (centrální difference), k aproximaci první derivace (přesnější než dopředná) 
-fdd <- function(f,x, h=1e-5){return((f(x+h)-2*f(x)-f(x-h))/(2*h))} #druhá derivace (pomocí centrální difference)
+fd <- function(f,x, h=1e-5) return((f(x+h)-f(x-h))/(2*h)) #první derivace (centrální difference), k aproximaci první derivace (přesnější než dopředná)
+fdd <- function(f,x, h=1e-5) return((f(x+h)-2*f(x)-f(x-h))/(2*h)) #druhá derivace (pomocí centrální difference)
 #najdem extremy, kde f'(x)=0 v celé funkci od -1 do 1
 x_hodnoty <- seq(-1,1,length.out=100000)#rozsah x a i vytvoření osy k interpolaci, lenght.out je citlivost zaznamenávání extrémů (zde musí být vykoká)
-derivace <- sapply(x_hodnoty, function(x) fd(f,x))
+derivace <- sapply(x_hodnoty, \(x) fd(f,x))
 extremy <- x_hodnoty[which(abs(derivace)<1e-3)] #vyfiltrujeme hodnoty přibližné 0 aby zbyly extrémy
 extremy <- x_hodnoty[which(diff(sign(derivace)) != 0)] #vymažu stejné hodnoty
 #rozlišíme minima a maxima podle druhé derivace, podle toho jestli je <>
@@ -1765,12 +1712,11 @@ bisekce <- function(f, a, b){
 }
 #hledání kořenů mezi intervaly v celý funkci od -1 do 1
 koreny <- c()
-for(i in 1:(length(x_hodnoty)-1)){
-  #projdém iteraci délkou x hodnot
-  if(f(x_hodnoty[i])*f(x_hodnoty[i+1])<0){#zjišťuji jestli existuje v intervalu kořen
+for(i in 1:(length(x_hodnoty)-1)){ #projdém iteraci délkou x hodnot
+  #zjišťuji jestli existuje v intervalu kořen
+  if(f(x_hodnoty[i])*f(x_hodnoty[i+1])<0){
     koren <- bisekce(f,x_hodnoty[i],x_hodnoty[i+1])
-    #přidání nalezen. kořene do vektoru pokud není NA
-    if (!is.na(koren)) koreny <- c(koreny, koren)
+    if (!is.na(koren)) koreny <- c(koreny, koren) #přidání nalezen. kořene do vektoru pokud není NA
   }
 }
 print(koreny) #můžem si vypsat pro kontrolu
