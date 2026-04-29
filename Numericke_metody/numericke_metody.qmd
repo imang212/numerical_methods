@@ -1915,3 +1915,163 @@ points(c(Vr_min, Vr_max), c(pr_min, pr_max), col=c("red","blue"), pch=19)
 grid(nx = NULL, ny = 8, col = "lightgray",lty="solid")
 legend("topright", legend=c("Minimum","Maximum"), col=c("red","blue"), pch=19)
 ```
+
+#### Výpočet IRR mezi 2 body
+
+```{r}
+# Zadání NUM
+#                       investice(i)
+#           rok(t)     0,   1,    2,    3,  
+#           CF A(-K)  -8,   4,    4,    4,     NPV
+# DCFAn(iN) N=10%     -8,3.64, 3.31, 3.01,    1.95  
+# DCFAv(iV) V=30%     -8,3.08, 2.37, 1.82,   -0.74
+# jednotlivé: CF/(1+r(%))^t
+# IRR(procentuální výnosnost investive) = ?
+# NPV = suma(n,t=1) (CFt/(1+i)^t) - K
+#       CFt = cash flow v čase t
+#       r = diskontní míra (náklady na kapitál)
+#       t = časové období
+# lineární interpolace pro body 1.95, -0.74 
+t <- c(0, 1, 2, 3); K <- c(-8, 4, 4, 4)
+NPV <- function(K, p, t){
+  NPV_new <- 0
+  for (i in 1:length(t)) NPV_new <- NPV_new + (K[i]/(1+p)^t[i])
+  return(NPV_new)
+}
+(p1 <- NPV(K, 0.1, t)); (p2 <- NPV(K, 0.3, t))
+
+bisection_method <- function(NPV, b, a, tol = 1e-7, max_iter = 100) {
+  fa <- NPV(K, a, t); fb <- NPV(K, b, t)
+  if (fb * fa > 0) stop("Funkce musí mít různá znaménka na koncích intervalu")
+  for (i in 1:max_iter) {
+    c <- (a + b) / 2
+    fc <- NPV(K, c, t)
+    if (abs(fc) < tol) return(list(c = c, fc = fc)) 
+    fa <- NPV(K, a, t)
+    if (fa * fc < 0) b <- c else a <- c
+  }
+  return(list(c = c, fc = fc))
+}
+(bisekce <- bisection_method(NPV, 0.1, 0.3, tol = 1e-7, 100))
+r_vals <- seq(0.1, 0.3, length.out = 100)
+NPV_vals <- sapply(r_vals, \(r) NPV(K, r, t))
+plot(r_vals, NPV_vals, type="l", lwd=2, xlab="Diskontní míra r(%)", ylab="NPV", main="NPV(r)")
+points(c(0.1,0.3),c(p1, p2), pch=19, col="blue")
+points(bisekce$c,bisekce$fc, pch=19,col='red')
+
+lagrange_interpolation <- function(x_data, y_data, x_eval) {
+  n <- length(x_data); y_eval <- numeric(length(x_eval))
+  for (k in 1:length(x_eval)) {
+    x <- x_eval[k]; result <- 0 
+    for (i in 1:n) { 
+      L_i <- 1 #i
+      for (j in 1:n) {
+        if (i != j) L_i <- L_i * (x - x_data[j]) / (x_data[i] - x_data[j])
+      }
+      result <- result + y_data[i] * L_i
+    }
+    y_eval[k] <- result
+  }
+  return(y_eval)
+}
+x_data <- c(0.1, 0.3); y_data <- c(p1, p2) # 1.95, -0.74
+# 0-y1=(x-x1)(y2-y1)/(x2-x1),  x = x1+(x2-x1)(0-y1)/(y2-y1)
+IRR <- x_data[1] + (0 - y_data[1]) * (x_data[2] - x_data[1]) / (y_data[2] - y_data[1])
+IRR
+IRR <- lagrange_interpolation(y_data, x_data, 0)
+lines(r_vals, sapply(r_vals, \(r) lagrange_interpolation(x_data, y_data, r)), type="l", lwd=2, col="violet")
+points(IRR, 0, pch=19, col='red')
+```
+
+#### Allee efect
+
+```{r}
+## allee effect
+# parametry
+N0 = 60 #velikost populace na začátku
+r = 0.5 # rate of increase
+A = 20 # kritický bod
+K = 100 # dostupná kapacita
+f = \(t, N) -r*N*(1-N/A)*(1-N/K) # ODE Alleeho efektu
+
+runge_kutta_4 <- function(f, t0, N0, t_konec, h) {
+  n <- ceiling((t_konec - t0) / h)
+  t <- seq(t0, t0 + n*h, by = h)
+  N <- numeric(n + 1); N[1] <- N0
+  for (i in 1:n) {
+    k1 <- f(t[i], N[i])
+    k2 <- f(t[i] + h/2, N[i] + h/2 * k1)
+    k3 <- f(t[i] + h/2, N[i] + h/2 * k2)
+    k4 <- f(t[i] + h, N[i] + h * k3)
+    N[i + 1] <- N[i] + h * (k1 + 2*k2 + 2*k3 + k4) / 6
+  }
+  return(data.frame(t = t, N = N))
+}
+vysledky <- runge_kutta_4(f, t0 = 0, N0=60 , t_konec = 1, h=0.3) # řešení ODE pomocí Runge Kutta 4. řádu s počáteční hodnotou N0=60 a časovým krokem 0.3
+plot(vysledky$t, vysledky$N, type = "l", col = "blue", lwd = 2, xlab = "t", ylab = "N(t)", main = "Změna počtu populace N v čase t")
+(vysledky$t); (vysledky$N) # výpis výsledků ODE
+(idx <- which(vysledky$N >= 80)[1]) # Hledání bodu t80, najdeme sousední body podle indexu
+# index bodu většího nebo rovného 80 a poté index bodu menšího než 80, dosadíme je do proměnných z výsledků
+t1 <- vysledky$t[idx - 1]; t2 <- vysledky$t[idx]
+N1 <- vysledky$N[idx - 1]; N2 <- vysledky$N[idx]
+t_80 <- t1 + (80 - N1) * (t2 - t1) / (N2 - N1) # ruční výpočet bodu pomocí interpolace
+t_80
+
+lagrange_interpolation <- function(x_data, y_data, x_eval) {
+  n <- length(x_data); y_eval <- numeric(length(x_eval))
+  for (k in 1:length(x_eval)) {
+    x <- x_eval[k]; result <- 0 
+    for (i in 1:n) { 
+      L_i <- 1 
+      for (j in 1:n) {
+        if (i != j) L_i <- L_i * (x - x_data[j]) / (x_data[i] - x_data[j])
+      }
+      result <- result + y_data[i] * L_i
+    }
+    y_eval[k] <- result
+  }
+  return(y_eval)
+}
+t_80 <- lagrange_interpolation(c(N1, N2), c(t1, t2), 80)
+t_80
+
+abline(v = t_80, col = "purple", lty = 2, lwd = 2)
+abline(h = 80, col = "purple", lty = 2, lwd = 2)
+points(t_80, 80, pch = 19, col = "red", cex = 2)
+
+LSA <- function(x, y, n){ 
+  A <- matrix(0, n, n); b <- numeric(n) 
+  for(i in 1:n){
+    for(j in 1:n) A[i,j] <- sum(x^(i+j-2)) 
+    b[i] <- sum(y*x^(i-1)) 
+  }
+  return(solve(A, b))
+}
+Horner <- function(x, coef){ 
+  n <- length(coef); res <- coef[n] 
+  for (i in (n-1):1) res <- res*x+coef[i]
+  return(res)
+}
+# Znázornění závislosti t80 na časovém kroku t
+# vytvoření vektoru s různými hodnotami h a vektoru kam budu ukládat hodnoty t80
+h_values <- c(0.001, 0.01, 0.1, 0.2, 0.3, 0.5, 0.7, 1)
+t_80_values <- numeric(length(h_values))
+for(i in 1:length(h_values)){
+  rk4_vysl <- runge_kutta_4(f, t0 = 0, N0=60 , t_konec = 1, h=h_values[i])
+  idx <- which(rk4_vysl$N >= 80)[1] #hledání indexu
+  t1 <- rk4_vysl$t[idx - 1]; t2 <- rk4_vysl$t[idx]
+  N1 <- rk4_vysl$N[idx - 1]; N2 <- rk4_vysl$N[idx]
+  t_80_values[i] <- t1 + (80 - N1) * (t2 - t1) / (N2 - N1)
+  print(t_80_values[i])
+}
+# vykreslení grafu t_80 výsledků
+plot(h_values, t_80_values, pch=19, col="red", xlab="h krok", ylab="t80 hodnota", main = "Hodnoty t80 při různých krocích")
+text(x=h_values, y=t_80_values+0.0007, labels = h_values)
+x_seq <- seq(0, max(h_values), length.out = 1000) # proložení závislosti parabolou (MNČ)
+coef <- LSA(h_values, t_80_values, 5) # výpočet polynomu 5. stupně
+values <- sapply(x_seq, \(x) Horner(x, coef))
+lines(x_seq, values, type = "l", lwd = 2, col = "purple", xlab = "t", ylab = "N(t)", main = "LSA")
+
+t80_t0 <- Horner(0, coef) # pomocí této aproximace určit t80 pro t = 0
+t80_t0
+```
