@@ -18,7 +18,7 @@ gaussova_metoda <- function(A, b) {
   n <- nrow(A); Ab <- cbind(A, b)  # Rozšířená matice
   # Dopředná eliminace
   for (k in 1:(n-1)) {
-    max_idx <- which.max(abs(Ab[k:n, k])) + k - 1 # Výběr pivota (částečná pivotace)
+    max_idx <- which.max(abs(Ab[k:n, k])) + k - 1 #Výběr pivota (částečná pivotace)
     if (max_idx != k) { # Prohození řádků
       temp <- Ab[k, ]
       Ab[k, ] <- Ab[max_idx, ]
@@ -32,9 +32,7 @@ gaussova_metoda <- function(A, b) {
   # Zpětná substituce
   x <- numeric(n)
   x[n] <- Ab[n, n+1] / Ab[n, n]
-  for (i in (n-1):1) {
-    x[i] <- (Ab[i, n+1] - sum(Ab[i, (i+1):n] * x[(i+1):n])) / Ab[i, i]
-  }
+  for (i in (n-1):1) x[i] <- (Ab[i, n+1] - sum(Ab[i, (i+1):n] * x[(i+1):n])) / Ab[i, i]
   return(x)
 }
 ```
@@ -45,7 +43,6 @@ gaussova_metoda <- function(A, b) {
 
 ```{r}
 # Rozloží matici A na L (dolní trojúhelníková) a U (horní trojúhelníková)
-# Pak řeší Ly = b a Ux = y
 lu_dekompozice <- function(A) {
   n <- nrow(A); L <- diag(n); U <- A
   for (k in 1:(n-1)) {
@@ -58,21 +55,15 @@ lu_dekompozice <- function(A) {
   }
   return(list(L = L, U = U))
 }
-# Řešení soustavy pomocí LU dekompozice
+# Řešení soustavy pomocí LU dekompozice, Ly = b a Ux = y
 reseni_lu <- function(A, b) {
   n <- length(b)
   LU <- lu_dekompozice(A); L <- LU$L; U <- LU$U
-  # Dopředná substituce: Ly = b
-  y <- numeric(n)
-  for (i in 1:n) y[i] <- b[i] - sum(L[i, 1:(i-1)] * y[1:(i-1)])
-  # Zpětná substituce: Ux = y
-  x <- numeric(n)
+  y <- numeric(n) # Dopředná substituce: Ly = b
+  for (i in 1:n) y[i] <- b[i] - sum(L[i, 1:(i-1)] * y[1:(i-1)]) 
+  x <- numeric(n) # Zpětná substituce: Ux = y
   for (i in n:1) {
-    if (i == n) {
-      x[i] <- y[i] / U[i, i]
-    } else {
-      x[i] <- (y[i] - sum(U[i, (i+1):n] * x[(i+1):n])) / U[i, i]
-    }
+    if (i == n) x[i] <- y[i] / U[i, i] else x[i] <- (y[i] - sum(U[i, (i+1):n] * x[(i+1):n])) / U[i, i]
   }
   return(x)
 }
@@ -96,10 +87,7 @@ jacobiova_metoda <- function(A, b, x0 = NULL, tol = 1e-6, max_iter = 1000) {
       suma <- sum(A[i, ] * x) - A[i, i] * x[i]
       x_new[i] <- (b[i] - suma) / A[i, i]
     }
-    if (max(abs(x_new - x)) < tol) { # Kontrola konvergence
-      cat("Jacobiova metoda konvergovala po", iter, "iteracích\n")
-      return(x_new)
-    }
+    if (max(abs(x_new - x)) < tol) { cat("Jacobiova metoda konvergovala po", iter, "iteracích\n"); return(x_new) }
     x <- x_new
   }
   warning("Jacobiova metoda nedosáhla konvergence")
@@ -115,8 +103,7 @@ jacobiova_metoda <- function(A, b, x0 = NULL, tol = 1e-6, max_iter = 1000) {
 # Používá aktualizované hodnoty ihned (rychlejší konvergence než Jacobi)
 gauss_seidel <- function(A, b, x0 = NULL, tol = 1e-6, max_iter = 1000) {
   n <- length(b)
-  # Počáteční odhad
-  if (is.null(x0)) x <- rep(0, n) else x <- x0
+  if (is.null(x0)) x <- rep(0, n) else x <- x0 # Počáteční odhad
   for (iter in 1:max_iter) {
     x_old <- x
     for (i in 1:n) {
@@ -125,8 +112,7 @@ gauss_seidel <- function(A, b, x0 = NULL, tol = 1e-6, max_iter = 1000) {
       if (i < n) suma <- suma + sum(A[i, (i+1):n] * x[(i+1):n])
       x[i] <- (b[i] - suma) / A[i, i]
     }
-    # Kontrola konvergence
-    if (max(abs(x - x_old)) < tol) { cat("Gauss-Seidelova metoda konvergovala po", iter, "iteracích\n"); return(x) }
+    if (max(abs(x - x_old)) < tol) { cat("Gauss-Seidelova metoda konvergovala po", iter, "iteracích\n"); return(x) } # Kontrola konvergence
   }
   warning("Gauss-Seidelova metoda nedosáhla konvergence")
   return(x)
@@ -138,25 +124,19 @@ A <- matrix(c(4, 1, 1,
               1, 5, 2,
               2, 3, 8), nrow = 3, byrow = TRUE)
 b <- c(7, 11, 17)
-
 cat("Soustava rovnic:\n")
 cat("4x + y + z = 7\n")
 cat("x + 5y + 2z = 11\n")
 cat("2x + 3y + 8z = 17\n")
 cat("Správné řešení: x = 1, y = 1, z = 1\n")
-
 x_gauss <- gaussova_metoda(A, b)
 cat("Řešení: x =", round(x_gauss[1], 6), ", y =", round(x_gauss[2], 6), ", z =", round(x_gauss[3], 6), "\n")
-
 x_lu <- reseni_lu(A, b)
 cat("Řešení: x =", round(x_lu[1], 6), ", y =", round(x_lu[2], 6), ", z =", round(x_lu[3], 6), "\n")
-
 x_jacobi <- jacobiova_metoda(A, b, tol = 1e-6)
 cat("Řešení: x =", round(x_jacobi[1], 6), ", y =", round(x_jacobi[2], 6), ", z =", round(x_jacobi[3], 6), "\n")
-
 x_gs <- gauss_seidel(A, b, tol = 1e-6)
 cat("Řešení: x =", round(x_gs[1], 6), ", y =", round(x_gs[2], 6), ", z =", round(x_gs[3], 6), "\n")
-
 cat("VERIFIKACE ŘEŠENÍ (A*x by mělo být rovno b)\n")
 cat("Gaussova metoda:      A*x =", round(A %*% x_gauss, 6), "\n")
 cat("LU dekompozice:       A*x =", round(A %*% x_lu, 6), "\n")
@@ -316,7 +296,7 @@ newton_horner_method <- function(coef, x0, tol = 1e-7, max_iter = 100) {
     for (i in 2:n) p <- p * x + coef[i]
     dp <- coef[1] # Hornerovo schéma pro derivaci
     for (i in 2:(n-1)) dp <- dp * x + coef[i]
-    if (abs(dp) < 1e-15) { stop("Derivace je příliš blízko nule") }
+    if (abs(dp) < 1e-15) stop("Derivace je příliš blízko nule") 
     x_new <- x - p / dp
     if (abs(x_new - x) < tol) return(list(root = x_new, iterations = iter, converged = TRUE))
     x <- x_new
@@ -334,8 +314,8 @@ newton_horner_method(c(-2, 0, 1), 2) #výpočet korene polynomu s počátečním
 ![](images/clipboard-1275808730.png)
 
 ```{r}
+#g je iterační funkce: x_{n+1} = g(x_n),Pro řešení f(x) = 0,převedeme na x = g(x)
 simple_iteration_method <- function(g, x0, tol = 1e-7, max_iter = 100) {
-  #g je iterační funkce: x_{n+1} = g(x_n),Pro řešení f(x) = 0,převedeme na x = g(x)
   x <- x0
   for (i in 1:max_iter) {
     x_new <- g(x)
@@ -426,18 +406,14 @@ vykresli_reseni <- function(vysledky, analyticky = NULL, title = "Řešení ODE"
 # PŘÍKLAD 1: Jednoduchá ODE - exponenciální růst
 cat("PŘÍKLAD 1: dy/dt = y, y(0) = 1\n")
 cat("Analytické řešení: y(t) = e^t\n")
-
 f1 <- \(t, y) y
 analyticky1 <- \(t) exp(t)
 reseni1 <- runge_kutta_4(f1, t0 = 0, y0 = 1, t_konec = 2, h = 0.1)
 vykresli_reseni(reseni1, analyticky = analyticky1, title = "dy/dt = y (exponenciální růst)")
-
-# Porovnání přesnosti
 cat("Porovnání v t = 2:\n")
 cat("RK4:        ", tail(reseni1$y, 1), "\n")
 cat("Analyticky: ", exp(2), "\n")
 cat("Chyba:      ", abs(tail(reseni1$y, 1) - exp(2)), "\n\n")
-
 # PŘÍKLAD 2: Harmonický oscilátor (převedený na systém 1. řádu)
 cat("\nPŘÍKLAD 2: dy/dt = -t*y, y(0) = 1\n")
 cat("Analytické řešení: y(t) = e^(-t²/2)\n")
@@ -445,15 +421,13 @@ f2 <- \(t, y) -t * y
 analyticky2 <- \(t) exp(-t^2/2)
 reseni2 <- runge_kutta_4(f2, t0 = 0, y0 = 1, t_konec = 3, h = 0.1)
 vykresli_reseni(reseni2, analyticky = analyticky2, title = "dy/dt = -t*y (Gaussova křivka)")
-
 # PŘÍKLAD 3: Logistický růst
 cat("\nPŘÍKLAD 3: dy/dt = y*(1-y), y(0) = 0.1\n")
 cat("Logistický růst populace\n")
 f3 <- \(t, y) y * (1 - y)
 reseni3_euler <- eulerova_metoda(f3, t0 = 0, y0 = 0.1, t_konec = 10, h = 0.5)
 reseni3_rk4 <- runge_kutta_4(f3, t0 = 0, y0 = 0.1, t_konec = 10, h = 0.5)
-plot(reseni3_euler$t, reseni3_euler$y, type = "l", col = "blue", lwd = 2,
-     xlab = "t", ylab = "y(t)", main = "Logistický růst: Euler vs RK4")
+plot(reseni3_euler$t, reseni3_euler$y, type = "l", col = "blue", lwd = 2, xlab = "t", ylab = "y(t)", main = "Logistický růst: Euler vs RK4")
 lines(reseni3_rk4$t, reseni3_rk4$y, col = "red", lwd = 2)
 legend("right", legend = c("Euler", "RK4"), col = c("blue", "red"), lty = 1, lwd = 2)
 grid()
@@ -465,7 +439,6 @@ cat("\nChyby v t = 2 (krok h = 0.2):\n")
 cat("Euler: ", abs(tail(euler_vysl$y, 1) - exp(2)), "\n")
 cat("RK2:   ", abs(tail(rk2_vysl$y, 1) - exp(2)), "\n")
 cat("RK4:   ", abs(tail(rk4_vysl$y, 1) - exp(2)), "\n\n")
-
 cat("\nPŘÍKLAD 5: Vliv velikosti kroku na přesnost (Eulerova metoda)\n")
 par(mfrow = c(2, 2))
 kroky <- c(0.5, 0.2, 0.1, 0.05)
@@ -476,19 +449,16 @@ for (h in kroky) {
   cat("h =", h, " → chyba:", round(chyba, 6), "\n")
 }
 par(mfrow = c(1, 1))
-
 cat("\nPŘÍKLAD 6: Radioaktivní rozpad\n")
 cat("dy/dt = -0.5*y, y(0) = 100\n")
 f6 <- \(t, y) -0.5 * y
 analyticky6 <- \(t) 100 * exp(-0.5 * t)
 reseni6 <- runge_kutta_4(f6, t0 = 0, y0 = 100, t_konec = 10, h = 0.2)
 vykresli_reseni(reseni6, analyticky = analyticky6, title = "Radioaktivní rozpad")
-
 cat("Poločas rozpadu (t kdy y = 50):\n")
 idx <- which.min(abs(reseni6$y - 50))
 cat("Numericky: t ≈", reseni6$t[idx], "\n")
 cat("Analyticky: t = ln(2)/0.5 =", log(2)/0.5, "\n")
-
 ```
 
 #### LV a SIR model (používá ODE)
@@ -539,10 +509,7 @@ legend("topright", legend = c("Kořist", "Predátor"), col = c("red", "blue"), l
 lotka_volterra <- \(t, state, parameters) {
   x <- state[1]; y <- state[2]  # Kořist, Dravec
   # Růst kořisti, Predace, Konverze, Smrt dravců
-  alpha <- parameters[1] 
-  beta <- parameters[2]  
-  delta <- parameters[3]  
-  gamma <- parameters[4]  
+  alpha <- parameters[1]; beta <- parameters[2]; delta <- parameters[3]; gamma <- parameters[4]  
   # Dif. rovnice
   dx_dt <- alpha * x - beta * x * y # růst kořisti predace
   dy_dt <- delta * x * y - gamma * y # konverze - smrt dravců 
@@ -550,21 +517,17 @@ lotka_volterra <- \(t, state, parameters) {
 }
 # Nejjednodušší numerická metoda: y_{n+1} = y_n + h·f(t_n, y_n)
 euler_method <- function(f, t_span, y0, parameters, h = 0.01) {
-  t_start <- t_span[1]; t_end <- t_span[2]
-  t <- seq(t_start, t_end, by = h) # Časové kroky
+  t_start <- t_span[1]; t_end <- t_span[2]; t <- seq(t_start, t_end, by = h) # Časové kroky
   n <- length(t)
   y <- matrix(0, nrow = n, ncol = length(y0)) # Inicializace
   y[1, ] <- y0
-  # Eulerova metoda
   for (i in 1:(n-1)) y[i+1, ] <- y[i, ] + h * f(t[i], y[i, ], parameters) # derivates
   return(list(t = t, y = y))
 }
 # Přesnější než Euler: používá 4 odhady derivace v každém kroku
 rk4_method <- function(f, t_span, y0, parameters, h = 0.01) {
-  t_start <- t_span[1]; t_end <- t_span[2]
-  t <- seq(t_start, t_end, by = h)
-  n <- length(t)
-  y <- matrix(0, nrow = n, ncol = length(y0))
+  t_start <- t_span[1]; t_end <- t_span[2]; t <- seq(t_start, t_end, by = h)
+  n <- length(t); y <- matrix(0, nrow = n, ncol = length(y0))
   y[1, ] <- y0
   # RK4 metoda
   for (i in 1:(n-1)) {
@@ -591,17 +554,14 @@ cat(sprintf("Dravci (y₀):         %.1f\n", LV_y0[2]))
 LV_euler <- euler_method(lotka_volterra, LV_time, LV_y0, LV_params, h = 0.01)
 LV_rk4 <- rk4_method(lotka_volterra, LV_time, LV_y0, LV_params, h = 0.01)
 par(mfrow = c(2, 2), mar = c(4, 4, 3, 1))
-# Graf 1: Časový vývoj populací (RK4)
 plot(LV_rk4$t, LV_rk4$y[, 1], type = "l", lwd = 2, col = "blue", xlab = "Čas", ylab = "Populace", main = "Lotka-Volterra: Časový vývoj (RK4)")
 lines(LV_rk4$t, LV_rk4$y[, 2], lwd = 2, col = "red")
 grid()
 legend("topright", legend = c("Kořist (x)", "Dravci (y)"), col = c("blue", "red"), lwd = 2)
-# Graf 2: Fázový portrét
 plot(LV_rk4$y[, 1], LV_rk4$y[, 2], type = "l", lwd = 2, col = "darkgreen", xlab = "Kořist (x)", ylab = "Dravci (y)", main = "Fázový portrét")
 points(LV_y0[1], LV_y0[2], pch = 19, col = "black", cex = 1.5)
 text(LV_y0[1], LV_y0[2], "Start", pos = 4)
 grid()
-# Graf 3: Srovnání metod (Kořist)
 plot(LV_euler$t, LV_euler$y[, 1], type = "l", lwd = 2, col = "blue", lty = 2, xlab = "Čas", ylab = "Populace kořisti", main = "Srovnání: Euler vs RK4")
 lines(LV_rk4$t, LV_rk4$y[, 1], lwd = 2, col = "darkblue")
 grid()
@@ -609,17 +569,10 @@ legend("topright", legend = c("Euler", "RK4"), col = c("blue", "darkblue"), lwd 
 # SIR model: dS/dt = -β·S·I/N, dI/dt = β·S·I/N - γ·I, dR/dt = γ·I
 # R₀ = β/γ = základní reprodukční číslo
 sir_model <- \(t, state, parameters) {
-  S <- state[1]  # Vnímavá populace
-  I <- state[2]  # Infikovaná populace
-  R <- state[3]  # Zotavená populace
-  beta <- parameters[1]   # Rychlost přenosu
-  gamma <- parameters[2]  # Rychlost zotavení
-  N <- sum(state)         # Celková populace
-  # Diferenciální rovnice
-  dS_dt <- -beta * S * I / N
-  dI_dt <- beta * S * I / N - gamma * I
-  dR_dt <- gamma * I
-  return(c(dS_dt, dI_dt, dR_dt))
+  S <- state[1]; I <- state[2]; R <- state[3] # Vnímavá, Infikovaná, Zotavená populace
+  beta <- parameters[1]; gamma <- parameters[2] # Rychlost přenosu, Rychlost zotavení
+  N <- sum(state) # Celková populace
+  return(c(-beta * S * I / N, beta * S * I / N - gamma * I, gamma * I)) #dS, dI, sR
 }
 SIR_params <- c(beta = 0.5, gamma = 0.1)# Rychlost přenosu, Rychlost zotavení (1/γ = doba nemoci)
 SIR_initial <- c(S = 990, I = 10, R = 0)
@@ -688,9 +641,7 @@ linear_interpolation <- function(x_data, y_data, x_eval) {
   n <- length(x_data); y_eval <- numeric(length(x_eval))
   for (k in 1:length(x_eval)) {
     x <- x_eval[k] # Najdi interval obsahující x
-    if (x <= x_data[1]) { 
-      y_eval[k] <- y_data[1] + (y_data[2] - y_data[1]) / (x_data[2] - x_data[1]) * (x - x_data[1]) # Extrapolace vlevo
-    } 
+    if (x <= x_data[1]) { y_eval[k] <- y_data[1] + (y_data[2] - y_data[1]) / (x_data[2] - x_data[1]) * (x - x_data[1]) } # Extrapolace vlevo
     else if (x >= x_data[n]) {
       y_eval[k] <- y_data[n-1] + (y_data[n] - y_data[n-1]) / (x_data[n] - x_data[n-1]) * (x - x_data[n-1]) # Extrapolace vpravo
     } 
@@ -718,9 +669,7 @@ lagrange_interpolation <- function(x_data, y_data, x_eval) {
     for (i in 1:n) { # Vypočítej Lagrangeův bázový polynom L_i(x)
       L_i <- 1 #i
       for (j in 1:n) {
-        if (i != j) {
-          L_i <- L_i * (x - x_data[j]) / (x_data[i] - x_data[j])
-        }
+        if (i != j) L_i <- L_i * (x - x_data[j]) / (x_data[i] - x_data[j])
       }
       result <- result + y_data[i] * L_i
     }
@@ -746,7 +695,6 @@ newton_divided_differences <- function(x_data, y_data) {
   }
   return(diag(F))  # Vrátí koeficienty
 }
-
 newton_interpolation <- function(x_data, y_data, x_eval) {
   coef <- newton_divided_differences(x_data, y_data)
   n <- length(x_data); y_eval <- numeric(length(x_eval))
@@ -827,10 +775,7 @@ hermite_interpolation <- function(x_data, y_data, dy_data, x_eval) {
   z <- rep(x_data, each = 2)  # Zdvojené body
   Q <- matrix(0, m, m)
   # První sloupec: hodnoty
-  for (i in 1:n) {
-    Q[2*i-1, 1] <- y_data[i]
-    Q[2*i, 1] <- y_data[i]
-  }
+  for (i in 1:n) { Q[2*i-1, 1] <- y_data[i]; Q[2*i, 1] <- y_data[i] }
   # Druhý sloupec: derivace a první dělené diference
   for (i in 1:n) {
     Q[2*i, 2] <- dy_data[i]
@@ -914,7 +859,6 @@ horner <- function(koeficienty, x) {
   for (i in (n-1):1) vysledek <- vysledek * x + koeficienty[i]
   return(vysledek)
 }
-# Pro vykreslení křivky
 vyhodnot_polynom <- function(koeficienty, x_hodnoty) {
   y_hodnoty <- sapply(x_hodnoty, \(x) horner(koeficienty, x))
   return(y_hodnoty)
@@ -973,7 +917,7 @@ f <- \(x) x^3 # Testovací funkce: f(x) = x³,  f'(x) = 3x², f''(x) = 6x
 ![](images/clipboard-163210035.png)
 
 ```{r}
-dopredna_diference <- function(f, x, h = 1e-5) return((f(x + h) - f(x)) / h)
+dopredna_diference <- \(f, x, h = 1e-5) return((f(x + h) - f(x)) / h)
 ```
 
 #### Zpětná diference
@@ -981,7 +925,7 @@ dopredna_diference <- function(f, x, h = 1e-5) return((f(x + h) - f(x)) / h)
 ![](images/clipboard-1996180282.png)
 
 ```{r}
-zpetna_diference <- function(f, x, h = 1e-5) return((f(x) - f(x - h)) / h)
+zpetna_diference <- \(f, x, h = 1e-5) return((f(x) - f(x - h)) / h)
 ```
 
 #### Centrální diference I.
@@ -989,7 +933,7 @@ zpetna_diference <- function(f, x, h = 1e-5) return((f(x) - f(x - h)) / h)
 ![](images/clipboard-3675661528.png)
 
 ```{r}
-centralni_diference_1 <- function(f, x, h = 1e-5) return((f(x + h) - f(x - h)) / (2 * h))
+centralni_diference_1 <- \(f, x, h = 1e-5) return((f(x + h) - f(x - h)) / (2 * h))
 
 ```
 
@@ -1019,7 +963,7 @@ richardsonova_extrapolace_1 <- function(f, x, h = 1e-2, k = 4) {
 ![](images/clipboard-3983150445.png)
 
 ```{r}
-centralni_diference_2 <- function(f, x, h = 1e-5) return((f(x+h) - 2*f(x) + f(x-h)) / (h^2)) # derivace
+centralni_diference_2 <- \(f, x, h = 1e-5) return((f(x+h) - 2*f(x) + f(x-h)) / (h^2)) # derivace
 ```
 
 #### Richardsonova extrapolace II.
@@ -1344,8 +1288,6 @@ simpson_integration <- function(f, a, b, n = 1000) {
 }
 #hledání hodnoty b pomocí bisekce
 find_b_for_integral <- function(f, target_value = 0.05) {
-  # Počáteční odhad pomocí kvantilové funkce normálního rozdělení
-  # Pro N(0,1): P(0 < X < b) = 0.05 → P(X < b) = 0.5 + 0.05 = 0.55
   a <- 0; b <- 2; tolerance <- 1e-8; max_iter <- 100
   for (i in 1:max_iter) {
     c <- (a + b) / 2
@@ -1381,7 +1323,6 @@ plot(x_fine, poly_4_values, type = "l", lwd = 2, col = "green", xlab = "b", ylab
 
 ```{r}
 f <- function(x) return(cos(5*acos(x))) #nadefinujeme si funkci
-#uděláme první a druhou derivaci funkce
 fd <- function(f,x, h=1e-5) return((f(x+h)-f(x-h))/(2*h)) #první derivace (centrální difference), k aproximaci první derivace (přesnější než dopředná)
 fdd <- function(f,x, h=1e-5) return((f(x+h)-2*f(x)-f(x-h))/(2*h)) #druhá derivace (pomocí centrální difference)
 #najdem extremy, kde f'(x)=0 v celé funkci od -1 do 1
@@ -1461,11 +1402,7 @@ jacobi_method <- function(n = 50, boundary_top = 100, max_iter = 10000, tol = 1e
         max_change <- max(max_change, abs(U_new[i, j] - U_old[i, j]))
       }
     }
-    # Kontrola konvergence
-    if (max_change < tol) {
-      cat(sprintf("\n\nKonvergence po %d iteracích! (změna < %.0e)\n", iter, tol))
-      break
-    }
+    if (max_change < tol) { cat(sprintf("\n\nKonvergence po %d iteracích! (změna < %.0e)\n", iter, tol)); break }
     # Příprava na další iteraci
     U_old <- U_new
   }
@@ -1506,8 +1443,7 @@ direct_solve_method <- function(n = 50, boundary_top = 100) {
   # Počet vnitřních bodů
   n_inner <- (n - 2) * (n - 2)
   # Vytvoření matice A a vektoru b
-  A <- matrix(0, n_inner, n_inner)
-  b <- numeric(n_inner)
+  A <- matrix(0, n_inner, n_inner); b <- numeric(n_inner)
   for (i in 2:(n-1)) {
     for (j in 2:(n-1)) {
       k <- (i - 2) * (n - 2) + (j - 1)
@@ -1563,8 +1499,7 @@ print(A[25,25]) #střed mřížky
 library(ggplot2); library(scales)
 ggplot(as.data.frame(as.table(A)), aes(Var1, Var2, fill = Freq)) +
   geom_tile() + scale_fill_gradient(low = "blue", high = "red") +
-  labs(title = "Heatmap of Matrix Values", x = "Row", y = "Column", fill = "Value") +
-  theme_minimal() + coord_fixed(ratio = 1)
+  labs(title = "Heatmap of Matrix Values", x = "Row", y = "Column", fill = "Value") + theme_minimal() + coord_fixed(ratio = 1)
 
 n <- 48*48; A <- matrix(0, n, n); b <- numeric(n) #Matice A a vektor b odpovídají Laplaceově rovnici na mřížce 48*48 (bez okrajových bodů), Ax=b
 for(i in 2:49){ #Každý bod mřížky je reprezentován jednou rovnicíí, kde diagonální prvek odpovídá hodnotě bodu a okolní prvky jeho sousedům.
@@ -1898,10 +1833,7 @@ print(paste("Estimated am:", round(am_est, 4))); print(paste("Estimated b:", rou
 f <- \(x, y) { return(y - x) } # y' = y - x
 RK4 <- function(x,y,f,h){ #4 mezikroky k dosažení vyšší přesnosti, má velmi malou chybu i při větších krocích. Bere totiž v úvahu. derivace na začátku, uprostřed a na konci intervalu.
   hhalf <- 0.5*h
-  k1 <- f(x,y)
-  k2 <- f(x+hhalf,y+hhalf*k1)
-  k3 <- f(x+hhalf,y+hhalf*k2)
-  k4 <- f(x+h,y+h*k3)
+  k1 <- f(x,y); k2 <- f(x+hhalf,y+hhalf*k1); k3 <- f(x+hhalf,y+hhalf*k2); k4 <- f(x+h,y+h*k3)
   return (y+((h/6)*(k1+2*(k2+k3)+k4)))
 } 
 RK4_solve <- function(x0, y0, f, h, x_end) {
@@ -1958,7 +1890,6 @@ cat("Minimum je při Vr =", min_Vr, "a pr =", min_pr, "\n")
 target_pressure <- 0.6 # Například najdeme Vr pro pr = 0.6
 # Definujeme funkci pro root finding
 pressure_diff <- function(Vr) { vdw_pressure(Vr, Tr) - target_pressure }
-# Použijeme uniroot pro nalezení kořenů, Můžeme mít více řešení, takže hledáme v různých intervalech
 root1 <- uniroot(pressure_diff, c(0.5, 1.0))$root
 root2 <- uniroot(pressure_diff, c(1.1, 3.0))$root
 cat("Pro pr =", target_pressure, "máme Vr =", root1, "nebo Vr =", root2, "\n")
